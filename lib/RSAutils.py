@@ -1,18 +1,13 @@
-# coding:utf-8
 from Crypto.PublicKey import RSA
-from Crypto.PublicKey import _slowmath
+from ._slowmath import rsa_construct
 import gmpy2
 from functools import reduce
 import libnum
 import subprocess
 import os
+from .factor_N import solve
 import logging
-logging.basicConfig(format='\033[92m%(levelname)s\033[0m: %(message)s')
-log = logging.getLogger()
-log.setLevel(logging.INFO)
-import factor_N
-
-
+from .logger import log
 class RSAAttack(object):
     def __init__(self, args):
         self.args = args
@@ -48,17 +43,17 @@ class RSAAttack(object):
                 self.e = self.data['e'][1]
             else:
                 # 模不互素
-                if isinstance(self.data['n'], list) and isinstance(self.data['e'], long) and isinstance(self.data['c'], long):
+                if isinstance(self.data['n'], list) and isinstance(self.data['e'], int) and isinstance(self.data['c'], int):
                     share_factor(
                         self.data['n'][0], self.data['n'][1], self.data['e'], self.data['c'])
                     return
                 # 共模攻击
-                if isinstance(self.data['n'], long) and isinstance(self.data['e'], list) and isinstance(self.data['c'], list):
+                if isinstance(self.data['n'], int) and isinstance(self.data['e'], list) and isinstance(self.data['c'], list):
                     share_N(self.data['n'], self.data['e'][0], self.data['e']
                             [1], self.data['c'][0], self.data['c'][1])
                     return
                 # Basic Broadcast Attack
-                if isinstance(self.data['n'], list) and isinstance(self.data['e'], long) and isinstance(self.data['c'], list):
+                if isinstance(self.data['n'], list) and isinstance(self.data['e'], int) and isinstance(self.data['c'], list):
                     Basic_Broadcast_Attack(self.data)
                     return
 
@@ -83,7 +78,7 @@ class RSAAttack(object):
                     self.data['pbits'] if 'pbits' in self.data else None)
             except Exception as e:
                 log.error('please check your --input')
-                print e
+                print(e)
                 return
         else:
             # 通过命令行参数读取，得到N与e，没有的话抛出异常
@@ -125,7 +120,7 @@ class RSAAttack(object):
         # 如果没有提供d
         if not self.d:
             # 分解大整数n
-            factors = factor_N.solve(self.n, self.e, self.c, self.sageworks)
+            factors = solve(self.n, self.e, self.c, self.sageworks)
             if factors:
                 self.p, self.q = factors
 
@@ -151,8 +146,8 @@ class RSAAttack(object):
         # --private 是否需要打印私钥
         if self.args.private:
             log.info('\np=%d\nq=%d\nd=%d\n' % (self.p, self.q, self.d))
-            log.info('private key:\n' + RSA.construct((long(self.n), long(self.e),
-                                                       long(self.d), long(self.p), long(self.q))).exportKey())
+            log.info('private key:\n' + RSA.construct((int(self.n), int(self.e),
+                                                       int(self.d), int(self.p), int(self.q))).exportKey())
 
         # 不需要解密，直接返回
         if not self.c:
@@ -169,7 +164,7 @@ def d_leak(N, e1, d1, e2):
 
 
 def nde_2_pq(N, d, e):
-    tmp_priv = _slowmath.rsa_construct(long(N), long(e), d=long(d))
+    tmp_priv = rsa_construct(int(N), int(e), d=int(d))
     p = tmp_priv.p
     q = tmp_priv.q
     return p, q

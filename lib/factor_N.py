@@ -1,15 +1,13 @@
-# coding:utf-8
-import requests
-import re
-from Crypto.PublicKey import _slowmath
-import subprocess
-import libnum
-import RSAutils
-import signal
 import os
+import re
+import signal
+import subprocess
 
+import libnum
+import requests
 
-log = RSAutils.log
+from ._slowmath import rsa_construct
+from .logger import log
 
 
 def solve(N, e, c, sageworks):
@@ -83,7 +81,7 @@ def noveltyprimes(N):
     # not all numbers in this form are prime but some are (25 digit is prime)
     maxlen = 25  # max number of digits in the final integer
     for i in range(maxlen - 4):
-        prime = long("3133" + ("3" * i) + "7")
+        prime = int("3133" + ("3" * i) + "7")
         if N % prime == 0:
             q = prime
             p = N / q
@@ -92,7 +90,7 @@ def noveltyprimes(N):
 
 def pastctfprimes(N):
     log.debug('factor N: try past ctf primes')
-    primes = [long(x) for x in open(os.path.dirname(__file__)+ '/pastctfprimes.txt', 'r').readlines(
+    primes = [int(x) for x in open(os.path.dirname(__file__)+ '/pastctfprimes.txt', 'r').readlines(
     ) if not x.startswith('#') and not x.startswith('\n')]
     for prime in primes:
         if N % prime == 0:
@@ -111,9 +109,8 @@ def boneh_durfee(N, e):
         ['sage', os.path.dirname(__file__)+ '/boneh_durfee.sage', str(N), str(e)]))
     if sageresult > 0:
         # use PyCrypto _slowmath rsa_construct to resolve p and q from d
-        from Crypto.PublicKey import _slowmath
-        tmp_priv = _slowmath.rsa_construct(
-            long(N), long(e), d=long(sageresult))
+        tmp_priv = rsa_construct(
+            int(N), int(e), d=int(sageresult))
         p = tmp_priv.p
         q = tmp_priv.q
         # d = sageresult
@@ -288,7 +285,7 @@ def wiener_attack(n, e):
 
 
 def nde_2_pq(n, d, e):
-    tmp_priv = _slowmath.rsa_construct(long(n), long(e), d=long(d))
+    tmp_priv = rsa_construct(int(n), int(e), d=int(d))
     p = tmp_priv.p
     q = tmp_priv.q
     return p, q

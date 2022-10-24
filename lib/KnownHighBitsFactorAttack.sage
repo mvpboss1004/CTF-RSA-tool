@@ -9,4 +9,4 @@ PR.<x> = PolynomialRing(Zmod(n))
 f = x + p4
 x0 = f.small_roots(X=2^kbits, beta=0.4)[0]
 p = p4+x0
-print int(p)
+print(int(p))
